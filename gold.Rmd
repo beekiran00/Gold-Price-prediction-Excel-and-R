@@ -1,0 +1,182 @@
+---
+title: "gold price"
+author: "Bhanu Kiran"
+date: "12/01/2022"
+output:
+  word_document: default
+  html_document: default
+---
+
+# Gold price prediction
+
+## Loading libraries
+```{r}
+library("readxl")
+library(tidyverse)
+library(reshape2)
+library(caret)
+```
+
+Read the dataset
+```{r}
+gold_df<- read_excel("complete_data.xlsx")
+```
+
+
+```{r}
+head(gold_df)
+```
+
+
+```{r}
+summary(gold_df)
+```
+
+
+```{r}
+str(gold_df)
+```
+
+changing the columns names to all lowercase for easy coding
+```{r}
+cols <- c("date", "sensex", "nifty", "snp", "oil_price", "usdinr", "interest_rate", "gold_demand", "snp_inr", "oil_price_inr", "gold_price")
+colnames(gold_df) <- cols
+```
+
+```{r}
+gold_df$date <- as.character(gold_df$date)
+```
+
+
+we do not need date for correlation, hence making a new dataset
+```{r}
+sub_gold <- gold_df %>% select(-date)
+```
+
+
+running a correlation on the dataset
+```{r}
+cormat <- round(cor(sub_gold),2)
+head(cormat)
+```
+
+
+```{r}
+melted_cormat <- melt(cormat)
+head(melted_cormat)
+```
+Correlation heatmap
+
+```{r}
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile()
+```
+
+From the above graph everything of the value in light_blue  is positive correlated and everything in navy blue is inversely correlated
+
+
+## Modelling a linear regression
+
+Exclude the snp and oil_price columns because we take the snp_inr and oil_price_inr as the converted prices
+```{r}
+mylog <- lm(gold_df$gold_price ~ gold_df$sensex + gold_df$nifty + gold_df$usdinr + gold_df$interest_rate + gold_df$gold_demand + gold_df$snp_inr + gold_df$oil_price_inr)
+```
+
+
+```{r}
+summary(mylog)
+```
+
+3 statistics to check for goodness of fit
+1. p-value => 2.2e-16 which is a very tiny number. This indicates that the values are significant  
+2. F-statistic => 798.8 with 2662 degrees of freedom
+3. R-squared => 0.7 this is way above 0.5 which indicates a good model
+
+plots of the model
+
+```{r}
+plot(mylog)
+```
+
+Goodness of fit w.r.t plots
+1. Residuals vs Fitted => the variance seems to be equal across the values and the scatter is random
+2. Normal qq => slight seems to be mostly normal
+
+
+```{r}
+
+samples <- gold_df$gold_price %>% createDataPartition(p=0.8, list = FALSE)
+train.data <- gold_df[samples,]
+test.data <- gold_df[-samples,]
+```
+
+```{r}
+colnames(gold_df)
+```
+
+
+
+```{r}
+model <- lm(gold_price ~ sensex + nifty + usdinr+ interest_rate+ gold_demand+ snp_inr+ oil_price_inr+ gold_price ,data= train.data)
+```
+
+```{r}
+summary(model)
+```
+
+## Model Interpretation
+
+From our model, before we make our predictions let's have a look at the goodness of fit.
+
+1. R-squared is 0.69 which is ~ .7 and is well above .5 therefor the model is we can say a good model.
+2. F-statistic is 601. The higher the better 
+3. and p-value very small which means the dependent variable can be explained by independent variables and it is significant
+
+on the predictions below we technically use the formula:
+
+Y= B0 + B1x1 + B2x2 ... + Bnxn + e
+
+where e is the error value which is +/- in nature
+
+according to our predictions whatever value we get is +/- on an average of 7163 units from the actual value
+
+
+```{r}
+predictions <- model %>% predict(test.data)
+```
+
+```{r}
+RMSE(predictions, test.data$gold_price)
+```
+
+```{r}
+R2(predictions, test.data$gold_price)
+```
+
+
+```{r}
+my_preds <- data.frame(test.data$date, predictions)
+```
+
+```{r}
+(my_preds)
+```
+
+From the table above. We can see that for 8th Jan 2010 the gold price prediction is 62883.17.  
+The value in our data set is 51680.7
+
+Our regression formula is Y = prediction +- e  
+=> Y = prediction +- 7163  
+=> Y = 62883.17 - 7239
+=> Y ~ 55720.17
+
+and the accuracy is r-squared value => .69 => 69%  
+
+Therefore the regression formula for predicting the gold prices is:  
+
+Y = 3.631e+03 + (-2.124e+00 x sensex) + (-5.103e-01 x nifty) + (5.408e+02 x usdinr)  
+    + (-2.011e+03 x interest rate) + (6.458e+00 x gold demand) + (5.261e-01 x s&p inr) + (1.162e+00 x oil price inr) +- 7239
+
+
+
+
