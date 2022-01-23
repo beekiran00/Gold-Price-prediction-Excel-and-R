@@ -103,6 +103,92 @@ Goodness of fit w.r.t plots
 2. Normal qq => slight seems to be mostly normal
 
 
+## Modelling a Linear regression with feature combinations
+
+Regression model without snp_inr and oil_price_inr  
+
+```{r}
+mylog_1 <- lm(gold_df$gold_price ~ gold_df$sensex + gold_df$nifty + gold_df$usdinr + gold_df$interest_rate + gold_df$gold_demand)
+```
+
+```{r}
+summary(mylog_1)
+```
+
+
+The multiple R squared is 0.50 which is no better that with all the features which is 0.67  
+
+```{r}
+plot(mylog_1)
+```
+
+
+
+Regression Model with only snp_inr and oil_price_inr
+
+```{r}
+mylog_2 <- lm(gold_df$gold_price ~ gold_df$oil_price_inr + gold_df$snp_inr)
+```
+
+```{r}
+summary(mylog_2)
+```
+
+This is even lower than model without snp_inr and oil_price_inr and model with all the features  
+
+
+Model with without gold_demand
+
+```{r}
+mylog_3 <- lm(gold_df$gold_price ~ gold_df$sensex + gold_df$nifty + gold_df$usdinr + gold_df$interest_rate + gold_df$snp_inr + gold_df$oil_price_inr)
+```
+
+```{r}
+summary(mylog_3)
+```
+
+Close to the original model with r squared 0.66  
+
+
+Model without sensex and nifty
+```{r}
+mylog_4 <- lm(gold_df$gold_price ~ gold_df$usdinr + gold_df$interest_rate + gold_df$gold_demand + gold_df$snp_inr + gold_df$oil_price_inr)
+```
+
+```{r}
+summary(mylog_4)
+```
+
+From the trails we find that taking out two features has lower r square value. But we want it to be of a high number above 0.5  
+
+Model with only positive correlation values (excluding oil_price_inr and gold_demand)
+
+```{r}
+mylogPossitive <- lm(gold_df$gold_price ~ gold_df$sensex + gold_df$nifty + gold_df$usdinr + gold_df$interest_rate + gold_df$snp_inr )
+```
+
+```{r}
+summary(mylogPossitive)
+```
+
+This has significant impact on the model. as from the trails if we take off two features the r squared is decreasing. but if we take onyl possitive correlation we get a good result.  
+
+
+Model with negative correlations
+
+```{r}
+mylogNegative <- lm(gold_df$gold_price ~  gold_df$gold_demand + gold_df$oil_price_inr)
+```
+
+```{r}
+summary(mylogNegative)
+```
+
+0.13, a very bad model.  
+
+
+## Extra work
+
 ```{r}
 
 samples <- gold_df$gold_price %>% createDataPartition(p=0.8, list = FALSE)
@@ -123,23 +209,6 @@ model <- lm(gold_price ~ sensex + nifty + usdinr+ interest_rate+ gold_demand+ sn
 ```{r}
 summary(model)
 ```
-
-## Model Interpretation
-
-From our model, before we make our predictions let's have a look at the goodness of fit.
-
-1. R-squared is 0.69 which is ~ .7 and is well above .5 therefor the model is we can say a good model.
-2. F-statistic is 601. The higher the better 
-3. and p-value very small which means the dependent variable can be explained by independent variables and it is significant
-
-on the predictions below we technically use the formula:
-
-Y= B0 + B1x1 + B2x2 ... + Bnxn + e
-
-where e is the error value which is +/- in nature
-
-according to our predictions whatever value we get is +/- on an average of 7163 units from the actual value
-
 
 ```{r}
 predictions <- model %>% predict(test.data)
@@ -171,6 +240,23 @@ Our regression formula is Y = prediction +- e
 => Y ~ 55720.17
 
 and the accuracy is r-squared value => .69 => 69%  
+
+## Model Interpretation
+
+From our model, before we make our predictions let's have a look at the goodness of fit.
+
+1. R-squared is 0.69 which is ~ .7 and is well above .5 therefor the model is we can say a good model.
+2. F-statistic is 601. The higher the better 
+3. and p-value very small which means the dependent variable can be explained by independent variables and it is significant
+
+on the predictions below we technically use the formula:
+
+Y= B0 + B1x1 + B2x2 ... + Bnxn + e
+
+where e is the error value which is +/- in nature
+
+according to our predictions whatever value we get is +/- on an average of 7163 units from the actual value
+
 
 Therefore the regression formula for predicting the gold prices is:  
 
